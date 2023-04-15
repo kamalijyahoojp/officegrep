@@ -5,8 +5,6 @@ package com.kamali.ofcgrep;
 
 import java.io.File;
 import java.io.FileFilter;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.text.MessageFormat;
@@ -24,7 +22,6 @@ import org.apache.poi.hssf.usermodel.HSSFRichTextString;
 import org.apache.poi.hssf.usermodel.HSSFShape;
 import org.apache.poi.hssf.usermodel.HSSFShapeGroup;
 import org.apache.poi.hssf.usermodel.HSSFSimpleShape;
-import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.Comment;
 import org.apache.poi.ss.usermodel.DataFormatter;
@@ -232,84 +229,85 @@ public class GrepTask extends SwingWorker<String, Object[]> {
 		}
 	}
 
-	private void excelSearch(File f) throws FileNotFoundException
-		, EncryptedDocumentException, InvalidFormatException, IOException {
+	private void excelSearch(File f) throws IOException, EncryptedDocumentException {
 		String text = "";
-		FileInputStream inp = new FileInputStream(f);
-
-		Workbook wb = WorkbookFactory.create(inp);
-		FormulaEvaluator evaluator = wb.getCreationHelper().createFormulaEvaluator();
-		DataFormatter formatter = new DataFormatter();
-//		HSSFWorkbook hssf = null;
-//		SXSSFWorkbook sxssf = null;
-//		XSSFWorkbook xssf = null;
-//		if (wb instanceof HSSFWorkbook) {
-//			hssf = (HSSFWorkbook)wb;
-//			List<HSSFObjectData> objList = hssf.getAllEmbeddedObjects();
-//		} else if (wb instanceof SXSSFWorkbook) {
-//			sxssf = (SXSSFWorkbook)wb;
-//		} else if (wb instanceof XSSFWorkbook) {
-//			xssf = (XSSFWorkbook)wb;
-//		}
-		for (Iterator<Sheet> si = wb.sheetIterator();si.hasNext();) {
-			Sheet sheet = si.next();
-			String sname = sheet.getSheetName();
-			Drawing draws = sheet.getDrawingPatriarch();
-			if (shPattern != null && !sname.matches(shPattern))
-				continue;
-			for (Iterator<Row> ri = sheet.iterator();ri.hasNext();) {
-				Row row = ri.next();
-				for (Iterator<Cell> ci = row.iterator();ci.hasNext();) {
-					Cell cell = ci.next();
-					switch (cell.getCellType()) {
-				    case FORMULA:
-				    	text = cell.getCellFormula();
-				    	try {
-					    	text = formatter.formatCellValue(cell, evaluator);
-				    	} catch (Throwable e) {
-				        	System.out.println(e.toString());
-				        	System.out.print("formula=");
-				        	System.out.println(text);
-				        }
-				        break;
-				    default:
-				    	text = formatter.formatCellValue(cell);
-				    	break;
+		Workbook wb = null;
+		try {
+			wb = WorkbookFactory.create(f);
+			FormulaEvaluator evaluator = wb.getCreationHelper().createFormulaEvaluator();
+			DataFormatter formatter = new DataFormatter();
+	//		HSSFWorkbook hssf = null;
+	//		SXSSFWorkbook sxssf = null;
+	//		XSSFWorkbook xssf = null;
+	//		if (wb instanceof HSSFWorkbook) {
+	//			hssf = (HSSFWorkbook)wb;
+	//			List<HSSFObjectData> objList = hssf.getAllEmbeddedObjects();
+	//		} else if (wb instanceof SXSSFWorkbook) {
+	//			sxssf = (SXSSFWorkbook)wb;
+	//		} else if (wb instanceof XSSFWorkbook) {
+	//			xssf = (XSSFWorkbook)wb;
+	//		}
+			for (Iterator<Sheet> si = wb.sheetIterator();si.hasNext();) {
+				Sheet sheet = si.next();
+				String sname = sheet.getSheetName();
+				Drawing<?> draws = sheet.getDrawingPatriarch();
+				if (shPattern != null && !sname.matches(shPattern))
+					continue;
+				for (Iterator<Row> ri = sheet.iterator();ri.hasNext();) {
+					Row row = ri.next();
+					for (Iterator<Cell> ci = row.iterator();ci.hasNext();) {
+						Cell cell = ci.next();
+						switch (cell.getCellType()) {
+					    case FORMULA:
+					    	text = cell.getCellFormula();
+					    	try {
+						    	text = formatter.formatCellValue(cell, evaluator);
+					    	} catch (Throwable e) {
+					        	System.out.println(e.toString());
+					        	System.out.print("formula=");
+					        	System.out.println(text);
+					        }
+					        break;
+					    default:
+					    	text = formatter.formatCellValue(cell);
+					    	break;
+						}
+						if (strPattern.matcher(text).find()) {
+							CellReference cellRef = new CellReference(cell);
+							Object[] info = new Object[] {
+								f, sname, cellRef.formatAsString(), text.replace("\n", "<br>")
+							};
+							publish(info);
+						}
+						Comment cm = cell.getCellComment();
+						if (cm == null) continue;
+						text = cm.getString().toString();
+						if (strPattern.matcher(text).find()) {
+							CellReference cellRef = new CellReference(cell);
+							Object[] info = new Object[] {
+								f, sname, cellRef.formatAsString() + "#comment", text.replace("\n", "<br>")
+							};
+							publish(info);
+						}
 					}
-					if (strPattern.matcher(text).find()) {
-						CellReference cellRef = new CellReference(cell);
-						Object[] info = new Object[] {
-							f, sname, cellRef.formatAsString(), text.replace("\n", "<br>")
-						};
-						publish(info);
+				}
+				if (draws instanceof HSSFPatriarch) {
+					HSSFPatriarch pa = (HSSFPatriarch)draws;
+					for (HSSFShape shape : pa.getChildren()) {
+						shapeSearch(f, sname, shape);
 					}
-					Comment cm = cell.getCellComment();
-					if (cm == null) continue;
-					text = cm.getString().toString();
-					if (strPattern.matcher(text).find()) {
-						CellReference cellRef = new CellReference(cell);
-						Object[] info = new Object[] {
-							f, sname, cellRef.formatAsString() + "#comment", text.replace("\n", "<br>")
-						};
-						publish(info);
+				} else if (draws instanceof XSSFDrawing) {
+					XSSFDrawing xdraw = (XSSFDrawing)draws;
+					for (XSSFShape shape : xdraw.getShapes()) {
+						shapeSearch(f, sname, shape);
 					}
 				}
 			}
-			if (draws instanceof HSSFPatriarch) {
-				HSSFPatriarch pa = (HSSFPatriarch)draws;
-				for (HSSFShape shape : pa.getChildren()) {
-					shapeSearch(f, sname, shape);
-				}
-			} else if (draws instanceof XSSFDrawing) {
-				XSSFDrawing xdraw = (XSSFDrawing)draws;
-				for (XSSFShape shape : xdraw.getShapes()) {
-					shapeSearch(f, sname, shape);
-				}
-			}
+	//		List<? extends PictureData> pics = wb.getAllPictures();
+		} catch (Throwable e) {
+			e.printStackTrace();
 		}
-//		List<? extends PictureData> pics = wb.getAllPictures();
-		wb.close();
-		inp.close();
+		if (wb != null) wb.close();
 	}
 
 	/* (非 Javadoc)
