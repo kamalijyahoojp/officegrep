@@ -34,6 +34,7 @@ dependencies {
     // This dependency is used by the application.
     implementation 'org.apache.poi:poi:5.2.2'
     implementation 'org.apache.poi:poi-ooxml:5.2.2'
+    implementation 'org.apache.poi:poi-ooxml-full:5.2.2'
 }
 
 application {

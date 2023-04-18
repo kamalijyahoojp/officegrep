@@ -344,6 +344,7 @@ public class GrepUI extends JPanel implements PropertyChangeListener,GrepTask.Pr
 		fc.setFileFilter(excelFilter);
 		fc.setFileHidingEnabled(true);
 		fc.setFileSelectionMode(JFileChooser.FILES_AND_DIRECTORIES);
+		fc.setSelectedFile(lastDir);
 		int ret = fc.showOpenDialog(this);
 		if (ret != JFileChooser.APPROVE_OPTION) return;
 		lastDir = fc.getSelectedFile();
@@ -380,6 +381,7 @@ public class GrepUI extends JPanel implements PropertyChangeListener,GrepTask.Pr
 			strPattern = ptn;
 		} else {
 			strPattern = null;
+			return;
 		}
 		ptn = txtShPattern.getText();
 		if (0 < ptn.length()) {

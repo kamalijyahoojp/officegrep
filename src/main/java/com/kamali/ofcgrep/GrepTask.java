@@ -122,7 +122,7 @@ public class GrepTask extends SwingWorker<String, Object[]> {
 
 	private void shapeSearch(File f, String sname, HSSFShape shape) {
 		if (shape instanceof HSSFShapeGroup) {
-			for (HSSFShape cshape : ((HSSFShapeGroup)shape).getChildren()) {
+			for (HSSFShape cshape : (HSSFShapeGroup)shape) {
 				shapeSearch(f, sname, cshape);
 			}
 		} else if (shape instanceof HSSFSimpleShape) {
@@ -193,8 +193,7 @@ public class GrepTask extends SwingWorker<String, Object[]> {
 
 	private void shapeSearch(File f, String sname, XSSFShape shape) {
 		if (shape instanceof XSSFShapeGroup) {
-			XSSFDrawing draws = ((XSSFShapeGroup)shape).getDrawing();
-			for (XSSFShape cshape : draws.getShapes()) {
+			for (XSSFShape cshape : (XSSFShapeGroup)shape) {
 				shapeSearch(f, sname, cshape);
 			}
 		} else if (shape instanceof XSSFSimpleShape) {
