@@ -5,6 +5,7 @@ package com.kamali.ofcgrep;
 
 import java.io.File;
 import java.io.FileFilter;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.text.MessageFormat;
@@ -230,9 +231,11 @@ public class GrepTask extends SwingWorker<String, Object[]> {
 
 	private void excelSearch(File f) throws IOException, EncryptedDocumentException {
 		String text = "";
+		FileInputStream is = null;
 		Workbook wb = null;
 		try {
-			wb = WorkbookFactory.create(f);
+			is = new FileInputStream(f);
+			wb = WorkbookFactory.create(is);
 			FormulaEvaluator evaluator = wb.getCreationHelper().createFormulaEvaluator();
 			DataFormatter formatter = new DataFormatter();
 	//		HSSFWorkbook hssf = null;
@@ -306,7 +309,7 @@ public class GrepTask extends SwingWorker<String, Object[]> {
 		} catch (Throwable e) {
 			e.printStackTrace();
 		}
-		if (wb != null) wb.close();
+		if (is != null) is.close();
 	}
 
 	/* (非 Javadoc)
