@@ -109,9 +109,24 @@ public class GrepTask extends SwingWorker<String, Object[]> {
 				try {
 					excelSearch(f);
 				} catch (Throwable e) {
-					e.printStackTrace();
+					String fname = "??.java";
+					String clazz = null;
+					String fnx = null;
+					int line = 0;
+					for (StackTraceElement st : e.getStackTrace()) {
+						fname = st.getFileName();
+						clazz = st.getClassName();
+						fnx = st.getMethodName();
+						line = st.getLineNumber();
+						Class<?> cls = getClass();
+						if (cls.getSimpleName().equals(clazz)) {
+							break;
+						} else if (cls.getCanonicalName().equals(clazz)) {
+							break;
+						}
+					}
 					Object[] info = new Object[] {
-						f, e.getClass().getSimpleName(), "", e.getLocalizedMessage()
+						f, e.getClass().getSimpleName(), fname + ":" + String.valueOf(line), e.getLocalizedMessage()
 					};
 					publish(info);
 				}
@@ -177,13 +192,15 @@ public class GrepTask extends SwingWorker<String, Object[]> {
 							break;
 						}
 						HSSFAnchor anchor = cshape.getAnchor();
-						coord[0] = anchor.getDx1();
-						coord[1] = anchor.getDy1();
-						coord[2] = type;
-						Object[] info = new Object[] {
-							f, sname, SHAPE_COORD.format(coord), text.replace("\n", "<br>")
-						};
-						publish(info);
+						if (anchor != null) {
+							coord[0] = anchor.getDx1();
+							coord[1] = anchor.getDy1();
+							coord[2] = type;
+							Object[] info = new Object[] {
+								f, sname, SHAPE_COORD.format(coord), text.replace("\n", "<br>")
+							};
+							publish(info);
+						}
 					}
 				}
 			} catch (Exception e) {
@@ -215,13 +232,15 @@ public class GrepTask extends SwingWorker<String, Object[]> {
 						}
 					}
 					XSSFAnchor anchor = cshape.getAnchor();
-					coord[0] = anchor.getDx1() / 669;
-					coord[1] = anchor.getDy1() / 669;
-					coord[2] = type;
-					Object[] info = new Object[] {
-						f, sname, SHAPE_COORD.format(coord), text.replace("\n", "<br>")
-					};
-					publish(info);
+					if (anchor != null) {
+						coord[0] = anchor.getDx1() / 669;
+						coord[1] = anchor.getDy1() / 669;
+						coord[2] = type;
+						Object[] info = new Object[] {
+							f, sname, SHAPE_COORD.format(coord), text.replace("\n", "<br>")
+						};
+						publish(info);
+					}
 				}
 			} catch (Exception e) {
 				e.printStackTrace();
@@ -306,10 +325,10 @@ public class GrepTask extends SwingWorker<String, Object[]> {
 				}
 			}
 	//		List<? extends PictureData> pics = wb.getAllPictures();
-		} catch (Throwable e) {
-			e.printStackTrace();
+		} finally {
+			if (is != null) is.close();
+			if (wb != null) wb.close();
 		}
-		if (is != null) is.close();
 	}
 
 	/* (非 Javadoc)

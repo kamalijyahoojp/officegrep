@@ -61,7 +61,7 @@ public class MainFrm extends JFrame {
 		});
 		setTitle("Office Grep");
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		setBounds(100, 100, 490, 509);
+		setBounds(100, 100, 580, 500);
 
 		JMenuBar menuBar = new JMenuBar();
 		setJMenuBar(menuBar);
